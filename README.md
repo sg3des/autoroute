@@ -1,11 +1,11 @@
 # AutoRoute is http router for Go
 
-Http routing based on your controllers and their methods, no need to manually write routes
+Http routing based on your controllers and their methods, no need to write routes manually
 
 	
-	for url: "http://site.com/books/read" 
+	for url: "http://site.com/books/read", where the path is `/books/read`
 
-	will be open controoler and method: Books.Read()
+	will be open controller and method: Books.Read()
 
 	package controllers
 
@@ -20,5 +20,5 @@ Http routing based on your controllers and their methods, no need to manually wr
 
 
 
-Default controller `Main` and method `index`, it means thar url path `/` call to `Main.index()`, which, incidentally, is similar `/main/index`
+Default controller `Main` and method `index` mean that url path `/` calls to `Main.index()`, which incidentally is similar to `/main/index`
 
