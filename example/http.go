@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"projects/autoroute"
-	"projects/test/controllers"
+	"github.com/sg3des/autoroute"
+	"github.com/sg3des/autoroute/example/controllers"
 )
 
 func main() {
