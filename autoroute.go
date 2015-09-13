@@ -15,7 +15,6 @@
 package autoroute
 
 import (
-	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
