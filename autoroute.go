@@ -51,8 +51,8 @@ func Route(w http.ResponseWriter, r *http.Request) {
 		urlpath[1] = Default.Method
 	}
 
-	for i, u := range urlpath {
-		urlpath[i] = strings.ToUpper(string(u[0])) + strings.ToLower(u[1:])
+	for i := 0; i < 2; i++ {
+		urlpath[i] = strings.ToUpper(string(urlpath[i][0])) + strings.ToLower(urlpath[i][1:])
 	}
 
 	Call(w, r, urlpath)
@@ -67,6 +67,7 @@ func Call(w http.ResponseWriter, r *http.Request, urlpath []string) {
 				//add request and responce writer to controller structur
 				reflect.ValueOf(m).Elem().FieldByName("W").Set(reflect.ValueOf(w))
 				reflect.ValueOf(m).Elem().FieldByName("R").Set(reflect.ValueOf(r))
+				reflect.ValueOf(m).Elem().FieldByName("A").Set(reflect.ValueOf(Args(urlpath)))
 				//call
 				reflect.ValueOf(m).MethodByName(urlpath[1]).Call([]reflect.Value{})
 			} else {
@@ -77,6 +78,13 @@ func Call(w http.ResponseWriter, r *http.Request, urlpath []string) {
 		}
 	}
 	error404(w)
+}
+
+func Args(urlpath []string) []string {
+	if len(urlpath) > 2 {
+		return urlpath[2:]
+	}
+	return []string{}
 }
 
 //error not found
