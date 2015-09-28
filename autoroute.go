@@ -34,6 +34,13 @@ var (
 	Default = Def{"Main", "Index"}
 )
 
+//Controller struct contain http.ResponseWriter, http.Request and list of arguments. Arguments is url path split by slash and crop two first element, ex: http://www.site.com/books/read/45 - where 45 will be added to arguments
+type Controller struct {
+	W http.ResponseWriter
+	R *http.Request
+	A []string
+}
+
 type Def struct {
 	Controller string
 	Method     string
@@ -63,7 +70,7 @@ func Call(w http.ResponseWriter, r *http.Request, urlpath []string) {
 	for p, m := range Controllers {
 		if p == urlpath[0] {
 			//check if controller.method can be call
-			if reflect.ValueOf(m).MethodByName(urlpath[1]).CanInterface() {
+			if reflect.ValueOf(m).MethodByName(urlpath[1]).IsValid() {
 				//add request and responce writer to controller structur
 				reflect.ValueOf(m).Elem().FieldByName("W").Set(reflect.ValueOf(w))
 				reflect.ValueOf(m).Elem().FieldByName("R").Set(reflect.ValueOf(r))
@@ -80,6 +87,7 @@ func Call(w http.ResponseWriter, r *http.Request, urlpath []string) {
 	error404(w)
 }
 
+//Split url path to arguments
 func Args(urlpath []string) []string {
 	if len(urlpath) > 2 {
 		return urlpath[2:]
