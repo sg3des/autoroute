@@ -25,10 +25,10 @@ func main() {
 	//is can be done with c.ListenAndServe or c.ListenAndServeTLS
 	//or your method
 
-	http.Handle("/", http.HandlerFunc(c.Route))
+	// http.Handle("/", http.HandlerFunc(c.Route))
 	fmt.Printf("starting web server on addr '%s'...\n", addr)
 
-	err := http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(addr, http.HandlerFunc(c.Route))
 	if err != nil {
 		log.Fatalln(err)
 	}

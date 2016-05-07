@@ -56,8 +56,7 @@ type C struct {
 
 //NewControllers bind controllers
 func NewControllers(cons map[string]interface{}) *C {
-	c := &C{Controllers: cons}
-	return c
+	return &C{Controllers: cons}
 }
 
 //ListenAndServe start http server
@@ -66,7 +65,7 @@ func (c *C) ListenAndServe(path, addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-//ListenAndServe start https server
+//ListenAndServeTLS start https server
 func (c *C) ListenAndServeTLS(path, addr, certFile, keyFile string) error {
 	http.Handle(path, http.HandlerFunc(c.Route))
 	return http.ListenAndServeTLS(addr, certFile, keyFile, nil)
@@ -76,11 +75,11 @@ func (c *C) ListenAndServeTLS(path, addr, certFile, keyFile string) error {
 func (c *C) Route(w http.ResponseWriter, r *http.Request) {
 	urlpath := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
 
-	if len(urlpath) == 1 {
+	if len(urlpath) <= 1 {
 		urlpath = []string{Default.Controller, urlpath[0]}
 	}
 
-	if len(urlpath[1]) == 0 {
+	if urlpath[1] == "" {
 		urlpath[1] = Default.Method
 	}
 
@@ -138,6 +137,7 @@ func (c *C) call(w http.ResponseWriter, r *http.Request, urlpath []string) ([]by
 			}
 		}
 
+		//call controller method
 		values := method.Call([]reflect.Value{})
 		if len(values) == 0 {
 			return []byte{}, nil

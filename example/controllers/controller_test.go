@@ -44,3 +44,27 @@ func TestCityGetJson(t *testing.T) {
 	}
 	io.Copy(os.Stdout, resp.Body)
 }
+
+func BenchmarkMainIndex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		resp, err := http.Get("http://127.0.0.1:7000/")
+		if err != nil {
+			// b.Error(err)
+			continue
+		}
+		resp.Body.Close()
+	}
+}
+
+func BenchmarkCity(b *testing.B) {
+	body := strings.NewReader(`{"name":"Moscow","country":"Russia"}`)
+
+	for i := 0; i < b.N; i++ {
+		resp, err := http.Post("http://127.0.0.1:7000/City/GetFieldJson", "application/json", body)
+		if err != nil {
+			b.Error(err)
+			continue
+		}
+		resp.Body.Close()
+	}
+}

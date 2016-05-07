@@ -1,22 +1,18 @@
 # AutoRoute is http router for Go
 
-Http routing based on your controllers and their methods, no need to write routes manually.
+AutoRoute is just an **experiment** - another view on web routing, but **it work**! 
 
-AutoRoute impose two-level url path where first node is controller and second node is method, in most cases this is enough.
+Idea of AutoRoute based web-routing on your controllers and their methods, and not write routes manually.
+
+AutoRoute impose only two-level url path where first node is controller and second node is method, in most cases this is enough.
 
 For url: "http://site.com/books/read", where the path is `/books/read` will be open controller and method: Books.Read()
 
-example of controller:
-	
-	package controllers
+For url: "http://site.com/books/read/1", will be opene same Books.Read() and send *"1"* how arguments in special field *Args*
 
-	type Books autoroute.Controller
 
-	func (c *Books) Read(){
-		c.W.Write([]byte{"this is Books read page"})
-	}
 
-autoroute.Controller is struct contains: W - http.ResponseWriter, R - http.Request, Args - list of arguments, Json - for json requests
+AutoRoute use structs for presentation controllers, you can use any structs, but should understand, what AutoRoute fill fields by their name: W - http.ResponseWriter, R - http.Request, Args - list of arguments, Json - for json requests. This structure already exists in AutoRoute package, and it can be used in most cases.
 
 	type Controller struct {
 		W http.ResponseWriter
@@ -25,13 +21,36 @@ autoroute.Controller is struct contains: W - http.ResponseWriter, R - http.Reque
 		Json interface{}
 	}
 
+AutoRoute can automate parse json requests: if request contains in field *"Content-Type"* of header - *"application/json"* - trying parse body of request to your controller struct by condition: if in struct exists field with name *"Json"* - json parsed to it, else to the controller itself.
 
-Default controller `Main` and method `Index` mean that url path `/` calls to `Main.Index()`, which incidentally is similar to `/main/index` and `/index`
+example of controller for standard struct:
+
+	package controllers
+
+	type Books autoroute.Controller
+
+	func (c *Books) Read() {
+		c.W.Write([]byte{"this is Books Read page"})
+	}
+
+as aforesaid struct may be another, furthermore is possible to return an answer as []byte:
+
+	package controllers
+
+	type Books struct {
+		ID string
+		Name string
+		Page int
+	}
+
+	func (c *Books) Read() []byte {
+		return []byte{"this is Books Read page by own struct"}
+	}
 
 
-AutoRoute can automate parse json requests to your structs: 
+For access to `/` url path need use default controller `Main` and method `Index` which calls to `Main.Index()`, which incidentally is similar to `/main/index` and `/index`
 
-if request contains in field *"Content-Type"* of header - *"application/json"*, it's trying parse body of request to your controller struct by condition: if exists field with name *"Json"* - json parsed to it, else to the controller itself.
+
 
 ##USAGE
 
@@ -64,6 +83,8 @@ if request contains in field *"Content-Type"* of header - *"application/json"*, 
 
 **For more examples look into the appropriate directory**
 
+
+
 ##FEATURES
 
 Default controller and method is Main.Index, you may replace them with own values `autoroute.Default = autoroute.Settings{"YourController", "YourDefaultMethod"}`
@@ -72,6 +93,23 @@ Default controller and method is Main.Index, you may replace them with own value
 url path `/` call default controller and default method.
 
 
+
 ##LIMITATIONS
 
 AutoRoute routing method does not provide a build true CRUD API, so as not distinguish http-methods of requests(GET,POST,etc...).
+
+
+##BENCHMARK
+
+AutoRoute does not claim to be the fastest, and is not suitable for high-load projects. It may be used only for small services or websites.
+
+benchmark simple requests:
+
+	BenchmarkMainIndex-8	    5000	    318426 ns/op
+
+benchmark json requests:
+
+	BenchmarkCity-8     	    5000	    342184 ns/op
+
+
+
