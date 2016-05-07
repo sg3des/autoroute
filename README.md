@@ -1,11 +1,13 @@
 # AutoRoute is http router for Go
 
-Http routing based on your controllers and their methods, no need to write routes manually
+Http routing based on your controllers and their methods, no need to write routes manually.
 
-	for url: "http://site.com/books/read", where the path is `/books/read`
+AutoRoute impose two-level url path where first node is controller and second node is method, in most cases this is enough.
 
-	will be open controller and method: Books.Read()
+For url: "http://site.com/books/read", where the path is `/books/read` will be open controller and method: Books.Read()
 
+example of controller:
+	
 	package controllers
 
 	type Books autoroute.Controller
@@ -14,22 +16,22 @@ Http routing based on your controllers and their methods, no need to write route
 		c.W.Write([]byte{"this is Books read page"})
 	}
 
-autoroute.Controller is struct contain http.ResponseWriter, http.Request and list of arguments
-
-	package autoroute
-
-	{***}
+autoroute.Controller is struct contains: W - http.ResponseWriter, R - http.Request, Args - list of arguments, Json - for json requests
 
 	type Controller struct {
 		W http.ResponseWriter
 		R *http.Request
-		A []string
+		Args []string
+		Json interface{}
 	}
 
 
-Default controller `Main` and method `index` mean that url path `/` calls to `Main.index()`, which incidentally is similar to `/main/index` and `/index`
+Default controller `Main` and method `Index` mean that url path `/` calls to `Main.Index()`, which incidentally is similar to `/main/index` and `/index`
 
-AutoRoute impose two-level url path where first node is controller and second node is method, in most cases this is enough.
+
+AutoRoute can automate parse json requests to your structs: 
+
+if request contains in field *"Content-Type"* of header - *"application/json"*, it's trying parse body of request to your controller struct by condition: if exists field with name *"Json"* - json parsed to it, else to the controller itself.
 
 ##USAGE
 
@@ -37,10 +39,7 @@ AutoRoute impose two-level url path where first node is controller and second no
 
 	package controllers
 
-	import (
-		"net/http"
-		"***autoroute"
-	)
+	import (***)
 
 	type Main autoroute.Controller
 
@@ -55,19 +54,24 @@ AutoRoute impose two-level url path where first node is controller and second no
 
 2) Declare your controllers to AutoRoute:
 
-	autoroute.Controllers = map[string]interface{}{
-		"Main": &controllers.Main{},
-	}
+	c := autoroute.NewControllers(map[string]interface{}{
+		"Main":  &controllers.Main{},
+	})
 
 3) Start server with one route:
 
-	http.Handle("/", http.HandlerFunc(autoroute.Route))
-	http.ListenAndServe("127.0.0.1:8000", nil)
+	c.ListenAndServe("/","127.0.0.1:8000")
 
+**For more examples look into the appropriate directory**
 
 ##FEATURES
 
-Default controller and method is Main.Index, you may replace them with own values `autoroute.Default = autoroute.Def{"MyController", "MyDefaultMethod"}`
+Default controller and method is Main.Index, you may replace them with own values `autoroute.Default = autoroute.Settings{"YourController", "YourDefaultMethod"}`
 
 
 url path `/` call default controller and default method.
+
+
+##LIMITATIONS
+
+AutoRoute routing method does not provide a build true CRUD API, so as not distinguish http-methods of requests(GET,POST,etc...).

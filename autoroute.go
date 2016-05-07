@@ -1,4 +1,4 @@
-//Package Autoroute is http interlayer implements routing based on existing methods of your controllers
+//Package autoroute is http interlayer implements routing based on existing methods of your controllers
 //Example:
 //
 //    autoroute.Controllers = map[string]interface{}{"Name":&yourcontroller.structname{},et.c.}
@@ -21,33 +21,59 @@
 package autoroute
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
 )
 
 var (
-	//list of your controllers
-	Controllers map[string]interface{}
-
-	//you may change predefined values
-	Default = Def{"Main", "Index"}
+	//Default settings - you may change predefined values
+	Default = Settings{"Main", "Index"}
 )
 
-//Controller struct contain http.ResponseWriter, http.Request and list of arguments. Arguments is url path split by slash and crop two first element, ex: http://www.site.com/books/read/45 - where 45 will be added to arguments
-type Controller struct {
-	W http.ResponseWriter
-	R *http.Request
-	A []string
-}
-
-type Def struct {
+//Settings struct
+type Settings struct {
 	Controller string
 	Method     string
 }
 
-//main function, parse url path and Call method
-func Route(w http.ResponseWriter, r *http.Request) {
+//Controller struct contain http.ResponseWriter, http.Request and list of arguments. Arguments is url path split by slash and crop two first element, ex: http://www.site.com/books/read/45 - where 45 will be added to Args
+type Controller struct {
+	W    http.ResponseWriter
+	R    *http.Request
+	Args []string
+	Json interface{}
+}
+
+//C is Controllers type
+type C struct {
+	Controllers map[string]interface{}
+}
+
+//NewControllers bind controllers
+func NewControllers(cons map[string]interface{}) *C {
+	c := &C{Controllers: cons}
+	return c
+}
+
+//ListenAndServe start http server
+func (c *C) ListenAndServe(path, addr string) error {
+	http.Handle(path, http.HandlerFunc(c.Route))
+	return http.ListenAndServe(addr, nil)
+}
+
+//ListenAndServe start https server
+func (c *C) ListenAndServeTLS(path, addr, certFile, keyFile string) error {
+	http.Handle(path, http.HandlerFunc(c.Route))
+	return http.ListenAndServeTLS(addr, certFile, keyFile, nil)
+}
+
+//Route is main function, parse url path and call obtained method
+func (c *C) Route(w http.ResponseWriter, r *http.Request) {
 	urlpath := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
 
 	if len(urlpath) == 1 {
@@ -58,36 +84,82 @@ func Route(w http.ResponseWriter, r *http.Request) {
 		urlpath[1] = Default.Method
 	}
 
+	//uppercase first letter
 	for i := 0; i < 2; i++ {
-		urlpath[i] = strings.ToUpper(string(urlpath[i][0])) + strings.ToLower(urlpath[i][1:])
+		urlpath[i] = strings.Title(urlpath[i])
 	}
 
-	Call(w, r, urlpath)
+	response, err := c.call(w, r, urlpath)
+	if err != nil {
+		error404(w)
+		return
+	}
+
+	w.Write(response)
 }
 
-//Call to method by path or not found
-func Call(w http.ResponseWriter, r *http.Request, urlpath []string) {
-	for p, m := range Controllers {
-		if p == urlpath[0] {
-			//check if controller.method can be call
-			if reflect.ValueOf(m).MethodByName(urlpath[1]).IsValid() {
-				//add request and responce writer to controller structur
-				reflect.ValueOf(m).Elem().FieldByName("W").Set(reflect.ValueOf(w))
-				reflect.ValueOf(m).Elem().FieldByName("R").Set(reflect.ValueOf(r))
-				reflect.ValueOf(m).Elem().FieldByName("A").Set(reflect.ValueOf(Args(urlpath)))
-				//call
-				reflect.ValueOf(m).MethodByName(urlpath[1]).Call([]reflect.Value{})
-			} else {
-				error404(w)
-				return
-			}
-			return
+//Call to method by path returned []byte output or error if page not found
+func (c *C) call(w http.ResponseWriter, r *http.Request, urlpath []string) ([]byte, error) {
+
+	if icontoller, ok := c.Controllers[urlpath[0]]; ok {
+		controller := reflect.ValueOf(icontoller)
+
+		method := controller.MethodByName(urlpath[1])
+
+		if !method.IsValid() {
+			return []byte{}, errors.New("page not found")
 		}
+
+		data := controller.Elem()
+
+		//fill standard controller
+		if data.FieldByName("W").IsValid() {
+			data.FieldByName("W").Set(reflect.ValueOf(w))
+		}
+		if data.FieldByName("R").IsValid() {
+			data.FieldByName("R").Set(reflect.ValueOf(r))
+		}
+		if data.FieldByName("Args").IsValid() {
+			data.FieldByName("Args").Set(reflect.ValueOf(Args(urlpath)))
+		}
+
+		//parse json request
+		if strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
+			var jsonStruct interface{}
+
+			if data.FieldByName("Json").IsValid() {
+				jsonStruct = data.FieldByName("Json").Interface()
+			} else {
+				jsonStruct = controller.Interface() //data.Interface()
+			}
+
+			if err := RequestJSON(r, &jsonStruct); err != nil {
+				return []byte{}, err
+			}
+		}
+
+		values := method.Call([]reflect.Value{})
+		if len(values) == 0 {
+			return []byte{}, nil
+		}
+		return values[0].Bytes(), nil
 	}
-	error404(w)
+	return []byte{}, errors.New("page not found")
 }
 
-//Split url path to arguments
+//RequestJSON function parse incoming request in json format
+func RequestJSON(r *http.Request, i interface{}) error {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+	return json.Unmarshal(body, &i)
+}
+
+//Args split url path to arguments
 func Args(urlpath []string) []string {
 	if len(urlpath) > 2 {
 		return urlpath[2:]
@@ -95,8 +167,7 @@ func Args(urlpath []string) []string {
 	return []string{}
 }
 
-//error not found
+//error404 page not found
 func error404(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("Error 404 page not found"))
+	http.Error(w, "404 page not found", 404)
 }
