@@ -109,6 +109,3 @@ benchmark simple requests:
 benchmark json requests:
 
 	BenchmarkCity-8     	    5000	    342184 ns/op
-
-
-++
