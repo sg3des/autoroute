@@ -10,8 +10,6 @@ For url: "http://site.com/books/read", where the path is `/books/read` will be o
 
 For url: "http://site.com/books/read/1", will be opene same Books.Read() and send *"1"* how arguments in special field *Args*
 
-
-
 AutoRoute use structs for presentation controllers, you can use any structs, but should understand, what AutoRoute fill fields by their name: W - http.ResponseWriter, R - http.Request, Args - list of arguments, Json - for json requests. This structure already exists in AutoRoute package, and it can be used in most cases.
 
 	type Controller struct {
@@ -21,7 +19,7 @@ AutoRoute use structs for presentation controllers, you can use any structs, but
 		Json interface{}
 	}
 
-AutoRoute can automate parse json requests: if request contains in field *"Content-Type"* of header - *"application/json"* - trying parse body of request to your controller struct by condition: if in struct exists field with name *"Json"* - json parsed to it, else to the controller itself.
+AutoRoute can automate parse json requests where header field *"Content-Type"* contains *"application/json"* - trying parse body to your controller struct by condition: if in struct exists field with name *"Json"* - json parsed to it, else to the controller itself.
 
 example of controller for standard struct:
 
@@ -51,6 +49,7 @@ as aforesaid struct may be another, furthermore is possible to return an answer 
 For access to `/` url path need use default controller `Main` and method `Index` which calls to `Main.Index()`, which incidentally is similar to `/main/index` and `/index`
 
 
+AutoRoute is fully compatible with native net/http package.
 
 ##USAGE
 
@@ -112,4 +111,4 @@ benchmark json requests:
 	BenchmarkCity-8     	    5000	    342184 ns/op
 
 
-
+++

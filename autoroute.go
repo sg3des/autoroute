@@ -1,7 +1,7 @@
 //Package autoroute is http interlayer implements routing based on existing methods of your controllers
 //Example:
 //
-//    autoroute.Controllers = map[string]interface{}{"Name":&yourcontroller.structname{},et.c.}
+//    c := autoroute.NewControllers(map[string]interface{}{"Name":&yourcontroller.structname{},et.c.})
 //
 // this set map of your controllers
 //

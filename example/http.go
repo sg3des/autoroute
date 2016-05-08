@@ -21,6 +21,7 @@ func main() {
 		"City":  &controllers.City{Json: &controllers.CityJson{}},
 	})
 
+	// fmt.Println(c)
 	//now need start listening
 	//is can be done with c.ListenAndServe or c.ListenAndServeTLS
 	//or your method
@@ -32,5 +33,4 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 }

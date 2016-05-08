@@ -62,7 +62,7 @@ func BenchmarkCity(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resp, err := http.Post("http://127.0.0.1:7000/City/GetFieldJson", "application/json", body)
 		if err != nil {
-			b.Error(err)
+			// b.Error(err)
 			continue
 		}
 		resp.Body.Close()
