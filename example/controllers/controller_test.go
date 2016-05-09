@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -49,6 +50,7 @@ func BenchmarkMainIndex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resp, err := http.Get("http://127.0.0.1:7000/")
 		if err != nil {
+			fmt.Println(err)
 			// b.Error(err)
 			continue
 		}
@@ -61,7 +63,10 @@ func BenchmarkCity(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		resp, err := http.Post("http://127.0.0.1:7000/City/GetFieldJson", "application/json", body)
+		body.Seek(0, 0)
+
 		if err != nil {
+			fmt.Println(err)
 			// b.Error(err)
 			continue
 		}

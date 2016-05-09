@@ -23,7 +23,6 @@ package autoroute
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -88,63 +87,62 @@ func (c *C) Route(w http.ResponseWriter, r *http.Request) {
 		urlpath[i] = strings.Title(urlpath[i])
 	}
 
-	response, err := c.call(w, r, urlpath)
-	if err != nil {
-		error404(w)
-		return
-	}
-
-	w.Write(response)
+	c.call(w, r, urlpath)
 }
 
 //Call to method by path returned []byte output or error if page not found
-func (c *C) call(w http.ResponseWriter, r *http.Request, urlpath []string) ([]byte, error) {
+func (c *C) call(w http.ResponseWriter, r *http.Request, urlpath []string) {
+	var icontoller interface{}
+	var ok bool
 
-	if icontoller, ok := c.Controllers[urlpath[0]]; ok {
-		controller := reflect.ValueOf(icontoller)
-
-		method := controller.MethodByName(urlpath[1])
-
-		if !method.IsValid() {
-			return []byte{}, errors.New("page not found")
-		}
-
-		data := controller.Elem()
-
-		//fill standard controller
-		if data.FieldByName("W").IsValid() {
-			data.FieldByName("W").Set(reflect.ValueOf(w))
-		}
-		if data.FieldByName("R").IsValid() {
-			data.FieldByName("R").Set(reflect.ValueOf(r))
-		}
-		if data.FieldByName("Args").IsValid() {
-			data.FieldByName("Args").Set(reflect.ValueOf(Args(urlpath)))
-		}
-
-		//parse json request
-		if strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
-			var jsonStruct interface{}
-
-			if data.FieldByName("Json").IsValid() {
-				jsonStruct = data.FieldByName("Json").Interface()
-			} else {
-				jsonStruct = controller.Interface() //data.Interface()
-			}
-
-			if err := RequestJSON(r, &jsonStruct); err != nil {
-				return []byte{}, err
-			}
-		}
-
-		//call controller method
-		values := method.Call([]reflect.Value{})
-		if len(values) == 0 {
-			return []byte{}, nil
-		}
-		return values[0].Bytes(), nil
+	if icontoller, ok = c.Controllers[urlpath[0]]; !ok {
+		http.Error(w, "404 page not found", 404)
+		return
 	}
-	return []byte{}, errors.New("page not found")
+
+	controller := reflect.ValueOf(icontoller)
+	method := controller.MethodByName(urlpath[1])
+	if !method.IsValid() {
+		http.Error(w, "404 page not found", 404)
+		return
+	}
+
+	data := controller.Elem()
+
+	//fill standard controller
+	if data.FieldByName("W").IsValid() {
+		data.FieldByName("W").Set(reflect.ValueOf(w))
+	}
+	if data.FieldByName("R").IsValid() {
+		data.FieldByName("R").Set(reflect.ValueOf(r))
+	}
+	if data.FieldByName("Args").IsValid() {
+		data.FieldByName("Args").Set(reflect.ValueOf(Args(urlpath)))
+	}
+
+	//parse json request
+	if strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
+		var jsonStruct interface{}
+
+		if data.FieldByName("Json").IsValid() {
+			jsonStruct = data.FieldByName("Json").Interface()
+		} else {
+			jsonStruct = controller.Interface() //data.Interface()
+		}
+
+		if err := RequestJSON(r, &jsonStruct); err != nil {
+			http.Error(w, "error code 503, reason: \"failed parse JSON\"", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	//call controller method
+	values := method.Call([]reflect.Value{})
+	if len(values) == 0 {
+		return
+	}
+
+	w.Write(values[0].Bytes())
 }
 
 //RequestJSON function parse incoming request in json format
@@ -165,9 +163,4 @@ func Args(urlpath []string) []string {
 		return urlpath[2:]
 	}
 	return []string{}
-}
-
-//error404 page not found
-func error404(w http.ResponseWriter) {
-	http.Error(w, "404 page not found", 404)
 }
